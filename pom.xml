@@ -134,15 +134,19 @@
 		
 		<!-- SAX dependencies -->
 		<!-- ================================================================== -->
-<!-- 		<dependency> -->
-<!-- 			<groupId>xerces</groupId> -->
-<!-- 			<artifactId>xercesImpl</artifactId> -->
-<!-- 			<version>2.11.0</version> -->
-<!-- 		</dependency> -->
 		<dependency>
 			<groupId>xerces</groupId>
 			<artifactId>xercesImpl</artifactId>
 			<version>2.11.0</version>
+		</dependency>
+		<!-- ================================================================== -->
+		
+		<!-- Jersey Client dependencies -->
+		<!-- ================================================================== -->
+		<dependency>
+			<groupId>com.sun.jersey</groupId>
+			<artifactId>jersey-client</artifactId>
+			<version>1.18.1</version>
 		</dependency>
 		<!-- ================================================================== -->
 

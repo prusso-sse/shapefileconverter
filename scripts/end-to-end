@@ -1,0 +1,16 @@
+# End to end creation of workspace, datastore, shapefile and layer
+
+# 1) Create the workspace
+java -jar target/shapefileconverter-0.0.1-SNAPSHOT.jar -m geoserverPost -r http://172.16.81.198:8080/geoserver/rest/workspaces -D "<workspace><name>qw_portal_map</name></workspace>" -u admin -p geoserver
+
+# 2) OPTIONAL: List Workspaces
+java -jar target/shapefileconverter-0.0.1-SNAPSHOT.jar -m geoserverGet -r http://172.16.81.198:8080/geoserver/rest/workspaces -u admin -p geoserver
+
+# 3) OPTIONAL: Query our new workspace directly
+java -jar target/shapefileconverter-0.0.1-SNAPSHOT.jar -m geoserverGet -r http://172.16.81.198:8080/geoserver/rest/workspaces/qw_portal_map.xml -u admin -p geoserver
+
+# 4) Create Shapefile and upload it to Geoserver
+java -jar target/shapefileconverter-0.0.1-SNAPSHOT.jar -m createAndUploadShapefile -f ../data/simplestation_236k.xml -s testShapeFile -d ./ -r http://172.16.81.198:8080/geoserver/rest/workspaces/qw_portal_map/datastores/test236k2/file.shp -u admin -p geoserver
+
+# 5) OPTIONAL: Recursively delete workspace
+java -jar target/shapefileconverter-0.0.1-SNAPSHOT.jar -m geoserverDelete -r http://172.16.81.198:8080/geoserver/rest/workspaces/qw_portal_map?recurse=true -u admin -p geoserver

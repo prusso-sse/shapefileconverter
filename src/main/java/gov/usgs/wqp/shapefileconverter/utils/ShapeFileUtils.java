@@ -1,5 +1,7 @@
 package gov.usgs.wqp.shapefileconverter.utils;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -26,6 +28,8 @@ public class ShapeFileUtils {
 	private static Logger log = ShapeFileUtils.getLogger(ShapeFileUtils.class);
 	
 	private static final char[] ILLEGAL_CHARACTERS = { '/', '\n', '\r', '\t', '\0', '\f', '`', '?', '*', '\\', '<', '>', '|', '\"', ':' };
+	
+	public static final String MEDIATYPE_APPLICATION_ZIP = "application/zip";
 	
 	public static Logger getLogger(Class<?> T) {
 		URL logFile = T.getResource("/log4j.properties");
@@ -59,8 +63,12 @@ public class ShapeFileUtils {
 		/*
          * Write the features to the shapefile
          */
+		// ==============
+		TimeProfiler.startTimer("GeoTools - Create Transaction time");
         Transaction transaction = new DefaultTransaction("create");
-
+        TimeProfiler.endTimer("GeoTools - Create Transaction time", log);
+		// ==============
+        
         String typeName;
 		try {
 			typeName = newDataStore.getTypeNames()[0];
@@ -70,6 +78,8 @@ public class ShapeFileUtils {
 			return false;
 		}
 		
+		// ==============
+		TimeProfiler.startTimer("GeoTools - Create SimpleFeatureSource time");
         SimpleFeatureSource featureSource;
 		try {
 			featureSource = newDataStore.getFeatureSource(typeName);
@@ -78,7 +88,9 @@ public class ShapeFileUtils {
 			log.error(e.getMessage());
 			return false;
 		}
-
+		TimeProfiler.endTimer("GeoTools - Create SimpleFeatureSource time", log);
+		// ==============
+		
         if (featureSource instanceof SimpleFeatureStore) {
             SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
             /*
@@ -86,11 +98,25 @@ public class ShapeFileUtils {
              * SimpleFeatureCollection object, so we use the ListFeatureCollection
              * class to wrap our list of features.
              */
+            // ==============
+            TimeProfiler.startTimer("GeoTools - SimpleFeatureCollection Creation time");
             SimpleFeatureCollection collection = new ListFeatureCollection(featureType, features);
+            TimeProfiler.endTimer("GeoTools - SimpleFeatureCollection Creation time", log);
+    		// ==============
+    		
             featureStore.setTransaction(transaction);
             try {
+            	// ==============
+            	TimeProfiler.startTimer("GeoTools - SimpleFeatureCollection Population time");
                 featureStore.addFeatures(collection);
+                TimeProfiler.endTimer("GeoTools - SimpleFeatureCollection Population time", log);
+        		// ==============
+        		
+        		// ==============
+                TimeProfiler.startTimer("GeoTools - Transaction Commit time");
                 transaction.commit();
+                TimeProfiler.endTimer("GeoTools - Transaction Commit time", log);
+        		// ==============
             } catch (Exception e) {
             	System.out.println(e.getMessage());
     			log.error(e.getMessage());
@@ -116,13 +142,19 @@ public class ShapeFileUtils {
         }
         
         if(archive) {
+        	// ==============
+        	TimeProfiler.startTimer("ZIP Archive - Overall Archive time");
         	ShapeFileUtils.createZipFromFilematch(path, filename);
+        	TimeProfiler.endTimer("ZIP Archive - Overall Archive time", log);
+    		// ==============
         }
 		
 		return true;
 	}
 	
 	public static boolean createZipFromFilematch(String path, final String filename) {
+		String zipFileName = path + File.separator + filename + ".zip";
+		
 		File directory = new File(path);
 		
 		if(!directory.exists()) {
@@ -130,6 +162,14 @@ public class ShapeFileUtils {
             System.out.println(msg);
 			log.error(msg);
 			return false;
+		}
+		
+		File existingFile = new File(zipFileName);
+		if(existingFile.exists()) {
+			String msg = "Zip file " + zipFileName + " exists.  Deleting prior to new shapefile creation.";
+            System.out.println(msg);
+			log.info(msg);
+			existingFile.delete();
 		}
 		
 		FilenameFilter filter = new FilenameFilter() {
@@ -142,38 +182,137 @@ public class ShapeFileUtils {
 		};			
 		
 		String[] directoryFiles = directory.list(filter);
-			
+
 		try {
-			byte[] buffer = new byte[1024]; 
-	    	FileOutputStream fos = new FileOutputStream(path + File.separator + filename + ".zip");
-	    	ZipOutputStream zos = new ZipOutputStream(fos);
-	 	 
-	    	for(String file : directoryFiles){
-	    		ZipEntry ze= new ZipEntry(file);
-	        	zos.putNextEntry(ze);
-	        	
-	        	String fileToZip = path + File.separator + file;
-	        	FileInputStream in = new FileInputStream(fileToZip);
-	 
-	        	int len;
-	        	while ((len = in.read(buffer)) > 0) {
-	        		zos.write(buffer, 0, len);
-	        	}
-	 
-	        	in.close();
-	        	
-	        	File deleteFile = new File(fileToZip);
+			final int BUFFER = 2048;
+			BufferedInputStream origin = null;
+			FileOutputStream dest = new FileOutputStream(zipFileName);
+			ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(dest));
+
+			byte data[] = new byte[BUFFER];
+
+			for (String file : directoryFiles) {
+				FileInputStream fi = new FileInputStream(file);
+				origin = new BufferedInputStream(fi, BUFFER);
+
+				ZipEntry entry = new ZipEntry(file);
+				out.putNextEntry(entry);
+				int count;
+
+				while ((count = origin.read(data, 0, BUFFER)) != -1) {
+					out.write(data, 0, count);
+				}
+
+				origin.close();
+				
+				File deleteFile = new File(file);
 	        	deleteFile.delete();
-	    	}
-	 
-	    	zos.closeEntry();
-	    	zos.close();
-	    } catch(IOException e) {
-	    	System.out.println(e.getMessage());
+			}
+			out.close();
+		} catch (IOException e) {
+			System.out.println(e.getMessage());
 			log.error(e.getMessage());
 			return false;
-	    }
+		}
 		
 		return true;
+	}
+	
+	/**
+	 * GLOBAL ENUMS
+	 */
+	public enum CLIMode {
+		createAndUploadShapefile, createShapefile, uploadShapefile, geoserverPost, geoserverGet, geoserverDelete, UNKNOWN;
+
+		public static CLIMode getTypeFromString(String string) {
+			if (string.equals("createAndUploadShapefile")) {
+				return createAndUploadShapefile;
+			}
+			
+			if (string.equals("createShapefile")) {
+				return createShapefile;
+			}
+			
+			if (string.equals("uploadShapefile")) {
+				return uploadShapefile;
+			}
+			
+			if (string.equals("geoserverPost")) {
+				return geoserverPost;
+			}
+			
+			if (string.equals("geoserverGet")) {
+				return geoserverGet;
+			}
+			
+			if (string.equals("geoserverDelete")) {
+				return geoserverDelete;
+			}
+			
+			if (string.equals("UNKNOWN")) {
+				return UNKNOWN;
+			}
+
+			return UNKNOWN;
+		}
+
+		public static String getStringFromType(CLIMode type) {
+			switch (type) {
+				case createAndUploadShapefile: {
+					return "createAndUploadShapefile";
+				}
+				
+				case createShapefile: {
+					return "createShapefile";
+				}
+				
+				case uploadShapefile: {
+					return "uploadShapefile";
+				}
+				
+				case geoserverPost: {
+					return "geoserverPost";
+				}
+				
+				case geoserverGet: {
+					return "geoserverGet";
+				}
+				
+				case geoserverDelete: {
+					return "geoserverDelete";
+				}
+				
+				case UNKNOWN: {
+					return "UNKNOWN";
+				}
+				
+				default: {
+					return "UNKNOWN";
+				}
+			}
+		}
+		
+		public static String validModes() {
+			CLIMode[] values = CLIMode.values();
+			
+			StringBuffer result = new StringBuffer();
+			
+			for(int i = 0; i < values.length; i++) {
+				CLIMode mode = values[i];
+				if(CLIMode.UNKNOWN == mode) {
+					continue;
+				}
+				
+				result.append(mode);
+				
+				if(i < (values.length - 1)) {
+					if(values[i+1] != CLIMode.UNKNOWN) {
+						result.append(", ");
+					}
+				}
+			}
+			
+			return result.toString();
+		}
 	}
 }

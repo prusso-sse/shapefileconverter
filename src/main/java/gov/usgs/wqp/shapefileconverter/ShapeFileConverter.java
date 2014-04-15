@@ -5,13 +5,12 @@ import gov.usgs.wqp.shapefileconverter.model.features.SimplePointFeature;
 import gov.usgs.wqp.shapefileconverter.model.sources.DataInputType;
 import gov.usgs.wqp.shapefileconverter.parser.wqx.SimplePointParser;
 import gov.usgs.wqp.shapefileconverter.utils.ShapeFileUtils;
+import gov.usgs.wqp.shapefileconverter.utils.TimeProfiler;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.MalformedURLException;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -50,13 +49,10 @@ public class ShapeFileConverter {
 					this.featureType = SimplePointFeature.getFeatureType();
 					this.featureBuilder = new SimpleFeatureBuilder(this.featureType);
 					
-					long startTime = System.nanoTime();
+					TimeProfiler.startTimer("WQX_OB_XML Parse Execution Time");
 					SimplePointParser spp = new SimplePointParser(filename, this.featureBuilder);
 					this.featureList = spp.parseSimplePointSource();
-					long endTime = System.nanoTime();
-					
-					NumberFormat formatter = new DecimalFormat("#0.000000000");
-					System.out.println("\nParse Execution Time [" + formatter.format((endTime - startTime) / 1000000000d) + "] seconds");
+					TimeProfiler.endTimer("WQX_OB_XML Parse Execution Time", log);
 					
 					result = true;
 				} catch (ParserConfigurationException e) {
@@ -91,7 +87,9 @@ public class ShapeFileConverter {
 	public boolean createShapeFile(String path, String filename, boolean createIndex, boolean archive) {
 		File newFile = new File(path + "/" + filename + ".shp");
 
+		TimeProfiler.startTimer("GeoTools - ShapefileDataStoreFactory Creation Time");
         ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
+        TimeProfiler.endTimer("GeoTools - ShapefileDataStoreFactory Creation Time", log);
 
         Map<String, Serializable> params = new HashMap<String, Serializable>();
         try {
@@ -103,6 +101,7 @@ public class ShapeFileConverter {
 		}
         params.put("create spatial index", createIndex);
 
+        TimeProfiler.startTimer("GeoTools - ShapefileDataStore Creation Time");
         ShapefileDataStore newDataStore;
 		try {
 			newDataStore = (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
@@ -111,6 +110,7 @@ public class ShapeFileConverter {
 			log.error(e.getMessage());
 			return false;
 		}
+		TimeProfiler.endTimer("GeoTools - ShapefileDataStore Creation Time", log);
 
         /*
          * TYPE is used as a template to describe the file contents
@@ -126,27 +126,30 @@ public class ShapeFileConverter {
         /**
 		 * Get our features
 		 */
-        long startTime = System.nanoTime();
+        TimeProfiler.startTimer("GeoTools - SimpleFeature List Creation Time");
         List<SimpleFeature> features = new ArrayList<SimpleFeature>();
 		for(FeatureDAO feature : this.featureList) {
 			features.add(feature.getSimpleFeature());
 		}
-		long endTime = System.nanoTime();		
-		NumberFormat formatter = new DecimalFormat("#0.000000000");
-		System.out.println("\nFeature Creation Time [" + formatter.format((endTime - startTime) / 1000000000d) + "] seconds");
+		TimeProfiler.endTimer("GeoTools - SimpleFeature List Creation Time", log);
         
         /*
          * Write the features to the shapefile
          */
-		startTime = System.nanoTime();
+		String msg = "\n\n=== Starting GeoTools Shapefile Timing ===";
+		log.info(msg);
+		System.out.println(msg);
+		TimeProfiler.startTimer("OVERALL GeoTools ShapeFile Creation Time");
         if(!ShapeFileUtils.writeToShapeFile(newDataStore, featureType, features, archive, path, filename)) {
         	String error = "Unable to write shape file";
         	System.out.println(error);
 			log.error(error);
 			return false;
         }
-        endTime = System.nanoTime();
-		System.out.println("\nShapeFile Creation Time [" + formatter.format((endTime - startTime) / 1000000000d) + "] seconds");
+        TimeProfiler.endTimer("OVERALL GeoTools ShapeFile Creation Time", log);
+        msg = "\n=== Finished GeoTools Shapefile Timing ===\n";
+		log.info(msg);
+		System.out.println(msg);
 		
 		return true;
 	}
