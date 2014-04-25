@@ -28,6 +28,8 @@ public class RESTClient {
 		} catch(ClientHandlerException e) {
 			response = "ClientHandlerException Exception [" + e.getMessage() + "]";
         	System.out.println(response);
+		} finally {
+			client.destroy();
 		}
 		
 		return response;
@@ -51,7 +53,40 @@ public class RESTClient {
 		} catch(ClientHandlerException e) {
 			response = "ClientHandlerException Exception [" + e.getMessage() + "]";
         	System.out.println(response);
+		} finally {
+			client.destroy();
 		}
+		
+		return response;
+	}
+	
+	public static String postFile(String uri, String filename, String user, String pass, String mediaType) {
+		Client client = Client.create();
+		
+		if(user != null) {
+			client.addFilter(new com.sun.jersey.api.client.filter.HTTPBasicAuthFilter(user, pass));
+		}
+		
+		WebResource service = client.resource(uri);
+		File file = new File(filename);
+        
+        String response;
+        if(file.exists()) {
+        	try {
+        		response = service.type(mediaType).accept(mediaType).post(String.class, file);
+        	} catch(UniformInterfaceException e) {
+    			response = "UniformInterfaceException Exception [" + e.getMessage() + "]";
+            	System.out.println(response);
+    		} catch(ClientHandlerException e) {
+    			response = "ClientHandlerException Exception [" + e.getMessage() + "]";
+            	System.out.println(response);
+    		}
+        } else {
+        	response = "File of type [" + mediaType + "] DOES NOT EXIST";
+        	System.out.println(response);
+        }
+        
+        client.destroy();
 		
 		return response;
 	}
@@ -83,6 +118,8 @@ public class RESTClient {
         	System.out.println(response);
         }
         
+        client.destroy();
+        
         return response;
 	}
 	
@@ -104,6 +141,8 @@ public class RESTClient {
 		} catch(ClientHandlerException e) {
 			response = "ClientHandlerException Exception [" + e.getMessage() + "]";
         	System.out.println(response);
+		} finally {
+			client.destroy();
 		}
 		
 		return response;

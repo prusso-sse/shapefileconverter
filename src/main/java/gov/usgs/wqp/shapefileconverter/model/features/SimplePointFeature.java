@@ -75,6 +75,8 @@ public class SimplePointFeature implements FeatureDAO {
 	
 	@SuppressWarnings("serial")
 	public SimplePointFeature(SimpleFeatureBuilder featureBuilder, SourceProvider srcProvider, String featureName, String featureType, double lng, double lat) {
+		this.featureBuilder = featureBuilder;
+		
 		this.provider = srcProvider;
 		this.name = featureName;
 		this.type = featureType;
@@ -109,6 +111,7 @@ public class SimplePointFeature implements FeatureDAO {
 	public void setProvider(SourceProvider provider) {
 		this.provider = provider;
 		baseAttribs.put(BaseAttributeType.Provider, SourceProvider.getStringFromType(provider));
+		featureAttribs.put(FeatureAttributeType.provider, SourceProvider.getStringFromType(provider));
 		this.featureIsDirty = true;
 	}
 
@@ -215,6 +218,10 @@ public class SimplePointFeature implements FeatureDAO {
 		return this.simpleFeature;
 	}
 	
+	public boolean featureIsDirty() {
+		return featureIsDirty;
+	}
+
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer();

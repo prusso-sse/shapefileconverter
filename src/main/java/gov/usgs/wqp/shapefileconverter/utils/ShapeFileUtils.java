@@ -222,7 +222,7 @@ public class ShapeFileUtils {
 	 * GLOBAL ENUMS
 	 */
 	public enum CLIMode {
-		createAndUploadShapefile, createShapefile, uploadShapefile, geoserverPost, geoserverGet, geoserverDelete, UNKNOWN;
+		createAndUploadShapefile, createShapefile, uploadShapefile, geoserverPost, geoserverPostFile, geoserverGet, geoserverDelete, UNKNOWN;
 
 		public static CLIMode getTypeFromString(String string) {
 			if (string.equals("createAndUploadShapefile")) {
@@ -239,6 +239,10 @@ public class ShapeFileUtils {
 			
 			if (string.equals("geoserverPost")) {
 				return geoserverPost;
+			}
+			
+			if (string.equals("geoserverPostFile")) {
+				return geoserverPostFile;
 			}
 			
 			if (string.equals("geoserverGet")) {
@@ -272,6 +276,10 @@ public class ShapeFileUtils {
 				
 				case geoserverPost: {
 					return "geoserverPost";
+				}
+				
+				case geoserverPostFile: {
+					return "geoserverPostFile";
 				}
 				
 				case geoserverGet: {

@@ -50,4 +50,16 @@ public class SimplePointParser {
 		
 		return this.simplePointFeatures;
 	}
+
+	public SAXParser getSaxParser() {
+		return saxParser;
+	}
+
+	public SimplePointProviderHandler getSpHander() {
+		return spHander;
+	}
+
+	public List<FeatureDAO> getSimplePointFeatures() {
+		return simplePointFeatures;
+	}
 }

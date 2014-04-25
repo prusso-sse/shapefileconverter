@@ -129,6 +129,11 @@ public class CLI {
 				System.out.println("\nGeoServer response for request [" + restValue + "] is: \n[" + response + "]\n\n\nExiting...\n");
 				break;
 			}
+			case geoserverPostFile: {
+				String response = RESTClient.postFile(restValue, theFile, restUserValue, restPassValue, restMediaTypeValue);				
+				System.out.println("\nGeoServer response for request [" + restValue + "] is: \n[" + response + "]\n\n\nExiting...\n");
+				break;
+			}
 			case uploadShapefile: {
 				String response = RESTClient.putDataFile(restValue, restUserValue, restPassValue, restMediaTypeValue, theFile);				
 				System.out.println("\nGeoServer response for request [" + restValue + "] is: \n[" + response + "]\n\n\nExiting...\n");
@@ -405,6 +410,23 @@ public class CLI {
 				} else {
 					System.out.println("\n\nError: When using mode [" + CLIMode.getStringFromType(modeValue) + "] you must declare the " + restArg + 
 							   		   " and " + restPostDataArg + " arguments.\n\n");
+					return false;
+				}
+			}
+			case geoserverPostFile: {
+				if(gotFile && gotRestURI && gotRestMediaType) {
+					if(gotRestUser && !gotRestPass) {
+						System.out.println("\n\nWARNING: Rest username described without a password.  Using empty string as password.\n\n");
+						restPassValue = "";
+					} else if(!gotRestUser && gotRestPass) {
+						System.out.println("\n\nERROR: Rest password described without a username.  Exiting...\n\n");
+						return false;
+					}
+					
+					return true;
+				} else {
+					System.out.println("\n\nError: When using mode [" + CLIMode.getStringFromType(modeValue) + "] you must declare the " + fileArg + ", " +
+									   restMediaTypeArg + " and " + restArg + " arguments.\n\n");					
 					return false;
 				}
 			}

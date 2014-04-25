@@ -178,4 +178,8 @@ public class SimplePointProviderHandler extends DefaultHandler {
 	public void characters(char[] ch, int start, int length) throws SAXException {
 		contents.write(ch, start, length);
 	}
+
+	public SourceProvider getCurrentProvider() {
+		return currentProvider;
+	}
 }

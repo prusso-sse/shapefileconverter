@@ -76,11 +76,11 @@ public class SimplePointLocationHandler extends DefaultHandler {
 	private SourceProvider currentSourceProvider;
 	private SimplePointFeature currentPointFeature;
 	
-	private static final String LOCATION_START = "MonitoringLocation";
-	private static final String LOCATION_IDENTIFIER = "MonitoringLocationIdentifier";
-	private static final String LOCATION_TYPE = "ResolvedMonitoringLocationTypeName";
-	private static final String LATTITUDE = "LatitudeMeasure";
-	private static final String LONGITUDE = "LongitudeMeasure";
+	public static final String LOCATION_START = "MonitoringLocation";
+	public static final String LOCATION_IDENTIFIER = "MonitoringLocationIdentifier";
+	public static final String LOCATION_TYPE = "ResolvedMonitoringLocationTypeName";
+	public static final String LATTITUDE = "LatitudeMeasure";
+	public static final String LONGITUDE = "LongitudeMeasure";
 	
 	private SimplePointProviderHandler parentHandler;
 	private SAXParser xmlReader;
@@ -95,6 +95,8 @@ public class SimplePointLocationHandler extends DefaultHandler {
 		this.currentSourceProvider = sourceProvider;
 		
 		this.featureBuilder = featureBuilder;
+		
+		this.currentPointFeature = null;
 	}
 	
 	public void startDocument() throws SAXException {
@@ -172,7 +174,7 @@ public class SimplePointLocationHandler extends DefaultHandler {
 							  "could not be parsed as a double value.  Setting latitude to 0.0";
 					System.out.println(error);
 					log.debug(error);
-				}				
+				}
 				
 				this.currentPointFeature.setLatitude(value);
 			} else {
@@ -214,20 +216,6 @@ public class SimplePointLocationHandler extends DefaultHandler {
 		}
 		
 		/**
-		 * SimplePointFeature name element
-		 */
-		if(SimplePointLocationHandler.LOCATION_IDENTIFIER.equals(qName)) {
-			if(this.currentPointFeature != null) {
-				this.currentPointFeature.setName(contents.toString());
-			} else {
-				String error = "SimplePointLocationHandler.endElement() ERROR: Element name [" +
-						  localName + "] found but no SimplePointFeature object created!";
-				System.out.println(error);
-				log.debug(error);
-			}
-		}
-		
-		/**
 		 * The ending tag for this feature
 		 */
 		if(SimplePointLocationHandler.LOCATION_START.equals(qName)) {
@@ -245,5 +233,9 @@ public class SimplePointLocationHandler extends DefaultHandler {
 	
 	public void characters(char[] ch, int start, int length) throws SAXException {
 		contents.write(ch, start, length);
+	}
+
+	public SimplePointFeature getCurrentPointFeature() {
+		return currentPointFeature;
 	}
 }
